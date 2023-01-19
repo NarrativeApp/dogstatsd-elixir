@@ -164,7 +164,7 @@ defmodule DogStatsd.Statsd do
           socket,
           host(dogstatsd) |> String.to_charlist(),
           port(dogstatsd),
-          message |> String.to_char_list()
+          message |> String.to_charlist()
         )
 
         :gen_udp.close(socket)
