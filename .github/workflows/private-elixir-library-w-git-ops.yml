@@ -3,12 +3,12 @@ on: push
 name: Privately published Elixir Library (with git ops)
 
 env:
-  ELIXIR_VERSION: "1.11.4"
-  OTP_VERSION: "22.3.1"
+  ELIXIR_VERSION: "1.14.5-otp-24"
+  OTP_VERSION: "24.3.4.17"
 
 jobs:
   deps:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     env:
       NARRATIVE_HEX_ORG_API_KEY: ${{ secrets.NARRATIVE_HEX_ORG_API_KEY }}
       MIX_ENV: test
@@ -29,13 +29,14 @@ jobs:
           key: ${{ runner.os }}-deps
       - run: mix deps.get
       - name: Uploading dependencies for other jobs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: deps
           path: deps/
+          include-hidden-files: true
 
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: ["deps"]
     env:
       MIX_ENV: test
@@ -48,7 +49,7 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
           elixir-version: ${{ env.ELIXIR_VERSION }}
       - name: Downloading dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: deps
           path: deps/
@@ -60,13 +61,13 @@ jobs:
       - name: Run `mix compile`
         run: mix deps.compile && mix compile
       - name: Uploading build artifacts for other jobs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: build
           path: _build/
 
   credo:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: ["deps", "build"]
     env:
       MIX_ENV: test
@@ -79,19 +80,19 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
           elixir-version: ${{ env.ELIXIR_VERSION }}
       - name: Downloading dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: deps
           path: deps/
       - name: Downloading build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build
           path: _build/
       - run: mix credo --strict
 
   formatter:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checking out project
         uses: actions/checkout@v2
@@ -103,7 +104,7 @@ jobs:
       - run: mix format --check-formatted
 
   audit:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: ["deps"]
     env:
       NARRATIVE_HEX_ORG_API_KEY: ${{ secrets.NARRATIVE_HEX_ORG_API_KEY }}
@@ -118,14 +119,14 @@ jobs:
           elixir-version: ${{ env.ELIXIR_VERSION }}
       - run: mix hex.organization auth narrativeapp --key $NARRATIVE_HEX_ORG_API_KEY
       - name: Downloading dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: deps
           path: deps/
       - run: mix hex.audit
 
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: ["deps", "build"]
     env:
       MIX_ENV: test
@@ -138,19 +139,19 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
           elixir-version: ${{ env.ELIXIR_VERSION }}
       - name: Downloading dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: deps
           path: deps/
       - name: Downloading build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build
           path: _build/
       - run: mix test
 
   is_releasable:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: ["deps", "test", "audit", "formatter", "credo"]
     if: ${{ github.event_name == 'push' && github.ref != 'refs/heads/master'}}
     env:
@@ -164,12 +165,12 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
           elixir-version: ${{ env.ELIXIR_VERSION }}
       - name: Downloading dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: deps
           path: deps/
       - name: Downloading build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build
           path: _build/
@@ -179,20 +180,20 @@ jobs:
       - name: Run mix hex.build
         run: mix hex.build -o ${{ steps.app-info.outputs.app_name }}-${{ steps.app-info.outputs.app_version }}.tar
       - name: Uploading hex package as job artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.app-info.outputs.app_name }}-${{ steps.app-info.outputs.app_version }}.tar
           path: ${{ steps.app-info.outputs.app_name }}-${{ steps.app-info.outputs.app_version }}.tar
       - name: Run mix docs
         run: MIX_ENV=test mix docs && tar zcvf docs.tar.gz doc/
       - name: Uploading documentation as job artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.app-info.outputs.app_name }}-docs-${{ steps.app-info.outputs.app_version }}.tar.gz
           path: docs.tar.gz
 
   git_ops:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: ["deps", "test", "audit", "formatter", "credo"]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     env:
@@ -208,12 +209,12 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
           elixir-version: ${{ env.ELIXIR_VERSION }}
       - name: Downloading dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: deps
           path: deps/
       - name: Downloading build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: build
           path: _build/

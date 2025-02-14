@@ -357,9 +357,7 @@ defmodule DogStatsdTest do
     # We should receive a packet of 50 messages that was automatically
     # flushed when the buffer got too big
     theoretical_reply =
-      Enum.into(1..50, [])
-      |> Enum.map(fn _ -> "mycounter:1|c" end)
-      |> Enum.join("\n")
+      Enum.map_join(1..50, "\n", fn _ -> "mycounter:1|c" end)
       |> String.to_charlist()
 
     assert_receive {:udp, _port, _from_ip, _from_port, ^theoretical_reply}

@@ -51,12 +51,8 @@ defmodule DogStatsd.Statsd do
       def add_tags(event, []), do: event
 
       def add_tags(event, tags) do
-        tags =
-          tags
-          |> Enum.map(&rm_pipes/1)
-          |> Enum.join(",")
-
-        "#{event}|##{tags}"
+        tags_string = Enum.map_join(tags, ",", &rm_pipes/1)
+        "#{event}|##{tags_string}"
       end
 
       def increment(dogstatsd, stat, opts \\ %{}) do
